@@ -1,0 +1,55 @@
+#include <dht.h>
+#define dht_apin A0 // Analog Pin sensor is connected to
+dht DHT;
+volatile int flow_frequency; // Measures flow sensor pulses
+unsigned int l_hour; // Calculated litres/hour
+unsigned char flowsensor = 2; // Sensor Input
+unsigned long currentTime;
+unsigned long cloopTime;
+void flow () // Interrupt function
+{
+   flow_frequency++;
+}
+
+void setup(){
+  Serial.begin(9600);
+  delay(1000);//Delay to let system boot
+  Serial.println("DHT11 Humidity & temperature Sensor & flow L per H\n\n");
+  delay(1000);//Wait before accessing Sensor
+  pinMode(flowsensor, INPUT);
+  digitalWrite(flowsensor, HIGH); // Optional Internal Pull-Up
+  Serial.begin(9600);
+  attachInterrupt(0, flow, RISING); // Setup Interrupt
+  sei(); // Enable interrupts
+  currentTime = millis();
+  cloopTime = currentTime;
+
+}//end "setup()"
+void loop(){
+  //Start of Program 
+    DHT.read11(dht_apin);
+    Serial.print("Current humidity = ");
+    Serial.print(DHT.humidity);
+    Serial.print("%");
+    Serial.print(",");
+    Serial.print("");
+    Serial.print("temperature = ");
+    Serial.print(DHT.temperature); 
+    Serial.print("C");
+    Serial.print(",");
+    Serial.print("");
+    delay(2000);//Wait 5 seconds before accessing sensor again.
+  //Fastest should be once every two seconds.
+  currentTime = millis();
+   // Every second, calculate and print litres/hour
+   if(currentTime >= (cloopTime + 1000))
+   {
+      cloopTime = currentTime; // Updates cloopTime
+      // Pulse frequency (Hz) = 7.5Q, Q is flow rate in L/min.
+      l_hour = (flow_frequency * 60 / 7.5); // (Pulse frequency x 60 min) / 7.5Q = flowrate in L/hour
+      flow_frequency = 0; // Reset Counter
+      Serial.print(l_hour, DEC); // Print litres/hour
+      Serial.println(" L/h");
+   }
+
+}// end loop(
